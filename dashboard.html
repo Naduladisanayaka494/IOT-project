@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fall Detection Dashboard</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      .dashboard {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        padding: 20px;
+        max-width: 400px;
+        text-align: center;
+      }
+
+      h1 {
+        color: #333;
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+
+      .status {
+        margin: 10px 0;
+        font-size: 20px;
+      }
+
+      .status span {
+        font-weight: bold;
+        color: #0066cc;
+      }
+
+      .fall-detected {
+        color: #cc0000;
+      }
+
+      .steps {
+        color: #28a745;
+      }
+    </style>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  </head>
+  <body>
+    <div class="dashboard">
+      <h1>Fall Detection Dashboard</h1>
+      <div class="status">Steps: <span id="steps" class="steps">0</span></div>
+      <div class="status">
+        Fall Detected: <span id="fallStatus" class="fall-detected">No</span>
+      </div>
+    </div>
+
+    <script>
+      // Replace with your MQTT broker's WebSocket address
+      const broker = "ws://your_mqtt_broker_url:port"; // Example: "ws://broker.hivemq.com:8000/mqtt"
+      const topic = "fallDetection/alerts";
+      const client = mqtt.connect(broker);
+
+      client.on("connect", function () {
+        console.log("Connected to MQTT broker");
+        client.subscribe(topic, function (err) {
+          if (!err) {
+            console.log("Subscribed to topic:", topic);
+          } else {
+            console.error("Subscription error:", err);
+          }
+        });
+      });
+
+      client.on("message", function (topic, message) {
+        const data = JSON.parse(message.toString());
+        document.getElementById("steps").innerText = data.stepCount;
+        document.getElementById("fallStatus").innerText = data.fallDetected
+          ? "Yes"
+          : "No";
+        document.getElementById("fallStatus").style.color = data.fallDetected
+          ? "#cc0000"
+          : "#28a745";
+      });
+    </script>
+  </body>
+</html>
