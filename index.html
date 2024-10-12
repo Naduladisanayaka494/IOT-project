@@ -52,7 +52,7 @@
   </head>
   <body>
     <div class="dashboard">
-      <h1>Fall Detection Dashboard-updated</h1>
+      <h1>Fall Detection Dashboard new</h1>
       <div class="status">Steps: <span id="steps" class="steps">0</span></div>
       <div class="status">
         Fall Detected: <span id="fallStatus" class="fall-detected">No</span>
@@ -60,8 +60,8 @@
     </div>
 
     <script>
-      // Replace with your MQTT broker's WebSocket address
- const broker = "wss://broker.hivemq.com:8884/mqtt";  // Secure WebSocket with SSL // Secure WebSocket // Old// Example: "ws://broker.hivemq.com:8000/mqtt"
+      // MQTT broker WebSocket address
+      const broker = "wss://broker.hivemq.com:8884/mqtt";  // Secure WebSocket with SSL
       const topic = "fallDetection/alerts";
       const client = mqtt.connect(broker);
 
@@ -79,12 +79,8 @@
       client.on("message", function (topic, message) {
         const data = JSON.parse(message.toString());
         document.getElementById("steps").innerText = data.stepCount;
-        document.getElementById("fallStatus").innerText = data.fallDetected
-          ? "Yes"
-          : "No";
-        document.getElementById("fallStatus").style.color = data.fallDetected
-          ? "#cc0000"
-          : "#28a745";
+        document.getElementById("fallStatus").innerText = data.fallDetected ? "Yes" : "No";
+        document.getElementById("fallStatus").style.color = data.fallDetected ? "#cc0000" : "#28a745";
       });
     </script>
   </body>
