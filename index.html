@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fall Detection Dashboard</title>
+    <title>Fall Detection Dashboard-NEW</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
   </head>
   <body>
     <div class="dashboard">
-      <h1>Fall Detection Dashboard new</h1>
+      <h1>Fall Detection Dashboard</h1>
       <div class="status">Steps: <span id="steps" class="steps">0</span></div>
       <div class="status">
         Fall Detected: <span id="fallStatus" class="fall-detected">No</span>
@@ -60,8 +60,8 @@
     </div>
 
     <script>
-      // MQTT broker WebSocket address
-      const broker = "wss://broker.hivemq.com:8884/mqtt";  // Secure WebSocket with SSL
+      // MQTT broker address (Standard MQTT over TCP)
+      const broker = "mqtt://broker.hivemq.com:1883";  // Standard MQTT (non-WebSocket)
       const topic = "fallDetection/alerts";
       const client = mqtt.connect(broker);
 
@@ -83,5 +83,5 @@
         document.getElementById("fallStatus").style.color = data.fallDetected ? "#cc0000" : "#28a745";
       });
     </script>
-  </body>
+  </body>
 </html>
