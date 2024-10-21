@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT Dashboard - Step Count & Fall Detection</title>
+    <title>Step Count and Fall Detection Dashboard#Thejani</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,99 +11,73 @@
             background-color: #f4f4f4;
             padding: 20px;
         }
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px auto;
+            width: 300px;
+        }
         h1 {
             color: #333;
         }
-        .status {
-            font-size: 1.2em;
-            padding: 10px;
-            border-radius: 10px;
-            margin: 10px;
-        }
-        #stepCount {
-            font-size: 2em;
-            color: #4CAF50;
-        }
-        #fallDetected {
-            font-size: 2em;
-            color: #f44336;
-        }
-        #fallDetected.no {
-            color: #4CAF50;
+        #stepCount, #fallStatus {
+            font-size: 24px;
+            margin: 10px 0;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.3/mqttws31.min.js"></script>
 </head>
 <body>
 
-    <h1>IoT Dashboard</h1>
-    <div id="statusMessage" class="status">Connecting to MQTT Broker...</div>
-
-    <div>
-        <p>Step Count:</p>
-        <div id="stepCount">0</div>
+    <div class="container">
+        <h1>ESP32 IoT Dashboard</h1>
+        <div>
+            <p id="stepCount">Steps: --</p>
+            <p id="fallStatus">Fall Detected: --</p>
+        </div>
     </div>
 
-    <div>
-        <p>Fall Detected:</p>
-        <div id="fallDetected" class="no">No</div>
-    </div>
-
+    <!-- Include MQTT.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <script>
-        const mqttServer = "test.mosquitto.org"; // Replace with your broker if needed
-        const mqttPort = 8081; // WebSocket port for MQTT
-        const mqttTopic = "alert-new"; // Topic ESP32 is publishing to
+        // MQTT Configuration
+        const broker = 'wss://test.mosquitto.org:8081/mqtt'; // Change to the broker you are using
+        const topic = 'alert-new'; // The topic to subscribe to
+        let client;
 
-        // Initialize MQTT client
-        const client = new Paho.MQTT.Client(mqttServer, mqttPort, "clientId-dashboard-" + Math.random());
+        // Connect to the MQTT broker
+        function connectMQTT() {
+            client = mqtt.connect(broker);
 
-        client.onConnectionLost = onConnectionLost;
-        client.onMessageArrived = onMessageArrived;
+            // On connection success
+            client.on('connect', function () {
+                console.log('Connected to MQTT broker');
+                client.subscribe(topic, function (err) {
+                    if (!err) {
+                        console.log('Subscribed to topic:', topic);
+                    } else {
+                        console.error('Subscription error:', err);
+                    }
+                });
+            });
 
-        client.connect({
-            onSuccess: onConnect,
-            onFailure: onFailure,
-            useSSL: true  // Required for secure MQTT connection on port 8081
-        });
-
-        function onConnect() {
-            console.log("Connected to MQTT broker");
-            document.getElementById("statusMessage").innerHTML = "Connected to MQTT Broker";
-            client.subscribe(mqttTopic);
+            // On receiving a message
+            client.on('message', function (topic, message) {
+                console.log('Received message:', message.toString());
+                const data = JSON.parse(message.toString());
+                updateDashboard(data);
+            });
         }
 
-        function onFailure(responseObject) {
-            console.log("Failed to connect: " + responseObject.errorMessage);
-            document.getElementById("statusMessage").innerHTML = "Failed to connect. Retrying...";
-            setTimeout(() => client.connect({ onSuccess: onConnect, onFailure: onFailure, useSSL: true }), 5000); // Retry every 5 seconds
+        // Update the dashboard elements based on received data
+        function updateDashboard(data) {
+            document.getElementById('stepCount').innerText = 'Steps: ' + data.stepCount;
+            document.getElementById('fallStatus').innerText = 'Fall Detected: ' + (data.fallDetected ? 'Yes' : 'No');
         }
 
-        function onConnectionLost(responseObject) {
-            if (responseObject.errorCode !== 0) {
-                console.log("Connection lost: " + responseObject.errorMessage);
-                document.getElementById("statusMessage").innerHTML = "Connection lost. Reconnecting...";
-                setTimeout(() => client.connect({ onSuccess: onConnect, onFailure: onFailure, useSSL: true }), 5000);
-            }
-        }
-
-        function onMessageArrived(message) {
-            console.log("Message Arrived: " + message.payloadString);
-
-            const payload = JSON.parse(message.payloadString);
-
-            // Update Step Count
-            document.getElementById("stepCount").innerText = payload.stepCount;
-
-            // Update Fall Detection Status
-            const fallDetectedElement = document.getElementById("fallDetected");
-            if (payload.fallDetected === "true") {
-                fallDetectedElement.innerText = "Yes";
-                fallDetectedElement.classList.remove("no");
-            } else {
-                fallDetectedElement.innerText = "No";
-                fallDetectedElement.classList.add("no");
-            }
-        }
+        // Initialize the MQTT connection
+        connectMQTT();
     </script>
 
 </body>
