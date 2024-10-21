@@ -1,87 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fall Detection Dashboard-Thejani-new</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard - Step Count & Fall Detection</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f9;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-      }
-
-      .dashboard {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        padding: 20px;
-        max-width: 400px;
-        text-align: center;
-      }
-
-      h1 {
-        color: #333;
-        font-size: 24px;
-        margin-bottom: 20px;
-      }
-
-      .status {
-        margin: 10px 0;
-        font-size: 20px;
-      }
-
-      .status span {
-        font-weight: bold;
-        color: #0066cc;
-      }
-
-      .fall-detected {
-        color: #cc0000;
-      }
-
-      .steps {
-        color: #28a745;
-      }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .status {
+            font-size: 1.2em;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px;
+        }
+        #stepCount {
+            font-size: 2em;
+            color: #4CAF50;
+        }
+        #fallDetected {
+            font-size: 2em;
+            color: #f44336;
+        }
+        #fallDetected.no {
+            color: #4CAF50;
+        }
     </style>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  </head>
-  <body>
-    <div class="dashboard">
-      <h1>Fall Detection Dashboard new</h1>
-      <div class="status">Steps: <span id="steps" class="steps">0</span></div>
-      <div class="status">
-        Fall Detected: <span id="fallStatus" class="fall-detected">No</span>
-      </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.3/mqttws31.min.js"></script>
+</head>
+<body>
+
+    <h1>IoT Dashboard</h1>
+    <div id="statusMessage" class="status">Connecting to MQTT Broker...</div>
+
+    <div>
+        <p>Step Count:</p>
+        <div id="stepCount">0</div>
+    </div>
+
+    <div>
+        <p>Fall Detected:</p>
+        <div id="fallDetected" class="no">No</div>
     </div>
 
     <script>
-      // MQTT broker WebSocket address
-      const broker = "wss://broker.hivemq.com:8884/mqtt";  // Secure WebSocket with SSL
-      const topic ="alert-new";
-      const client = mqtt.connect(broker);
+        const mqttServer = "test.mosquitto.org"; // Replace with your broker if needed
+        const mqttPort = 8081; // WebSocket port for MQTT
+        const mqttTopic = "alert-new"; // Topic ESP32 is publishing to
 
-      client.on("connect", function () {
-        console.log("Connected to MQTT broker");
-        client.subscribe(topic, function (err) {
-          if (!err) {
-            console.log("Subscribed to topic:", topic);
-          } else {
-            console.error("Subscription error:", err);
-          }
+        // Initialize MQTT client
+        const client = new Paho.MQTT.Client(mqttServer, mqttPort, "clientId-dashboard-" + Math.random());
+
+        client.onConnectionLost = onConnectionLost;
+        client.onMessageArrived = onMessageArrived;
+
+        client.connect({
+            onSuccess: onConnect,
+            onFailure: onFailure,
+            useSSL: true  // Required for secure MQTT connection on port 8081
         });
-      });
 
-      client.on("message", function (topic, message) {
-        const data = JSON.parse(message.toString());
-        document.getElementById("steps").innerText = data.stepCount;
-        document.getElementById("fallStatus").innerText = data.fallDetected ? "Yes" : "No";
-        document.getElementById("fallStatus").style.color = data.fallDetected ? "#cc0000" : "#28a745";
-      });
+        function onConnect() {
+            console.log("Connected to MQTT broker");
+            document.getElementById("statusMessage").innerHTML = "Connected to MQTT Broker";
+            client.subscribe(mqttTopic);
+        }
+
+        function onFailure(responseObject) {
+            console.log("Failed to connect: " + responseObject.errorMessage);
+            document.getElementById("statusMessage").innerHTML = "Failed to connect. Retrying...";
+            setTimeout(() => client.connect({ onSuccess: onConnect, onFailure: onFailure, useSSL: true }), 5000); // Retry every 5 seconds
+        }
+
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("Connection lost: " + responseObject.errorMessage);
+                document.getElementById("statusMessage").innerHTML = "Connection lost. Reconnecting...";
+                setTimeout(() => client.connect({ onSuccess: onConnect, onFailure: onFailure, useSSL: true }), 5000);
+            }
+        }
+
+        function onMessageArrived(message) {
+            console.log("Message Arrived: " + message.payloadString);
+
+            const payload = JSON.parse(message.payloadString);
+
+            // Update Step Count
+            document.getElementById("stepCount").innerText = payload.stepCount;
+
+            // Update Fall Detection Status
+            const fallDetectedElement = document.getElementById("fallDetected");
+            if (payload.fallDetected === "true") {
+                fallDetectedElement.innerText = "Yes";
+                fallDetectedElement.classList.remove("no");
+            } else {
+                fallDetectedElement.innerText = "No";
+                fallDetectedElement.classList.add("no");
+            }
+        }
     </script>
-  </body>
+
+</body>
 </html>
